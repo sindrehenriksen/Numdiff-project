@@ -2,14 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def yee_1d(M, N, t0, fields=None, boundary='pmc'):
+def yee_1d(M, N, t0, initial_fields=None, boundary='pmc'):
+    '''
+    :param initial_fields: Tuple of arrays with shape (M + 1,)
+    '''
     # imp0 = 377.0
 
-    if fields is None:
+    if initial_fields is None:
         Ez = np.zeros(M + 1)
         By = np.zeros(M + 1)
     else:
-        Ez, By = fields
+        Ez, By = initial_fields
         assert Ez.shape == (M + 1,) and By.shape == (M + 1,)
 
     if boundary == 'pmc':
@@ -17,7 +20,6 @@ def yee_1d(M, N, t0, fields=None, boundary='pmc'):
             Ez[1:] = (By[1:] - By[:-1]) + Ez[1:]
             Ez[M//3] += np.exp(-((t + t0) - 30) ** 2 / 100)
             By[:-1] = (Ez[1:] - Ez[:-1]) + By[:-1]
-
     else:
         raise NotImplementedError
 
