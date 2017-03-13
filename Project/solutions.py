@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sympy import *
+import yee_1d from methods\yee_method.py
 import matplotlib.animation as animation
 
 
@@ -68,15 +69,15 @@ class Solutions:
             return line,
 
         ani = animation.FuncAnimation(fig, animate, frames=steps, init_func=init, interval=5, blit=True)
-        # plt.show()
-        ani.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+        plt.show()
+        #ani.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
 
-# speed_of_light = 299792458
 # x, t, c = symbols("x t c")
+# speed_of_light = 299792458
 # f = exp(-(x - 30) ** 2 / 100)
 # g = x * 0
 # problem = Solutions(f, g, speed_of_light)
-# #problem.plot_analytical(0, 200, 200, 400 / (4 * speed_of_light), electric=False)
+# problem.plot_analytical(0, 200, 200, 400 / (4 * speed_of_light), electric=True)
 # problem.animation(-70, 130, 0, 100 / speed_of_light, 150, electric=True)
 
 
@@ -84,3 +85,5 @@ class Solutions:
 # f = sin(pi*x) + cos(pi*y) + sin(pi*z)
 # g = sin(pi*y)
 # analytical_electric_3d(f, g)
+
+yee_1d():
