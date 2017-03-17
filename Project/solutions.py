@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sympy import *
-import yee_1d from methods\yee_method.py
 import matplotlib.animation as animation
 
 
@@ -86,4 +85,4 @@ class Solutions:
 # g = sin(pi*y)
 # analytical_electric_3d(f, g)
 
-yee_1d():
+
