@@ -1,11 +1,14 @@
+import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def yee_1d(M, N, t0, initial_fields=None, boundary='pmc'):
+
+def yee_1d(M, N, t0=0, initial_fields=None, boundary='pmc', pulse=False):
     '''
-    :param initial_fields: Tuple of arrays with shape (M + 1,)
+    :param initial_fields: Tuple of arrays ((Ez, By)) with shapes (M + 1,)
     '''
+
     # imp0 = 377.0
 
     if initial_fields is None:
@@ -13,12 +16,13 @@ def yee_1d(M, N, t0, initial_fields=None, boundary='pmc'):
         By = np.zeros(M + 1)
     else:
         Ez, By = initial_fields
-        assert Ez.shape == (M + 1,) and By.shape == (M + 1,)
+        assert Ez.shape == By.shape == (M + 1,)
 
     if boundary == 'pmc':
         for t in range(1, N + 1):
             Ez[1:] = (By[1:] - By[:-1]) + Ez[1:]
-            Ez[M//3] += np.exp(-((t + t0) - 30) ** 2 / 100)
+            if pulse:
+                Ez[M // 3] += np.exp(-((t + t0) - 30) ** 2 / 100)
             By[:-1] = (Ez[1:] - Ez[:-1]) + By[:-1]
     else:
         raise NotImplementedError
@@ -26,46 +30,51 @@ def yee_1d(M, N, t0, initial_fields=None, boundary='pmc'):
     return Ez, By
 
 
-def yee_3D(M, N, t0, fields=None, boundary='pmc'):
+def yee_3d(M, N, t0=0, initial_fields=None, boundary='pmc', pulse=False):
+    '''
+    :param initial_fields: Tuple of arrays ((Ex, Ey, Ez, Bx, By, Bz)) with shapes (M[0] + 1, M[1] + 1, M[2] + 1)
+    '''
+
     # imp0 = 377.0
-    stability_constant = 1 / np.sqrt(3)
+    stability_constant = 1 / np.sqrt(6)
 
     I, J, K = M
-    if fields is None:
-        Ex = np.zeros((I + 1, J + 1, K + 1))
-        Ey = np.zeros((I + 1, J + 1, K + 1))
-        Ez = np.zeros((I + 1, J + 1, K + 1))
-        Bx = np.zeros((I + 1, J + 1, K + 1))
-        By = np.zeros((I + 1, J + 1, K + 1))
-        Bz = np.zeros((I + 1, J + 1, K + 1))
+    if initial_fields is None:
+        Ex, Ey, Ez, Bx, By, Bz = initialize_fields_3d(I, J, K)
     else:
-        Ex, Ey, Ez, Bx, By, Bz = fields
-        # assert Ez.shape == (M + 1,) and By.shape == (M + 1,)
+        Ex, Ey, Ez, Bx, By, Bz = initial_fields
+        assert Ex.shape == (N + 1, I - 1, J, K) and \
+               Ey.shape == (N + 1, I, J - 1, K) and \
+               Ez.shape == (N + 1, I, J, K - 1) and \
+               Bx.shape == (N + 1, I, J - 1, K - 1) and \
+               By.shape == (N + 1, I - 1, J, K - 1) and \
+               Bz.shape == (N + 1, I - 1, J - 1, K)
 
     if boundary == 'pmc':
         for t in range(1, N + 1):
             print(t)
-            for i in range(1, I):
-                for j in range(1, J + 1):
-                    for k in range(1, K):
-                        if i != I:
-                            Ex[i, j, k] = stability_constant * ((Bz[i, j, k] - Bz[i, j - 1, k]) - (By[i, j, k] - By[i, j, k - 1])) + Ex[i, j, k]
-                        if j != J:
-                            Ey[i, j, k] = stability_constant * ((Bx[i, j, k] - Bx[i, j, k - 1]) - (Bz[i, j, k] - Bz[i - 1, j, k])) + Ex[i, j, k]
-                        if k != K:
-                            Ex[i, j, k] = stability_constant * ((By[i, j, k] - By[i - 1, j, k]) - (Bx[i, j, k] - Bx[i, j - 1, k])) + Ex[i, j, k]
+            Ex[t, :, 1:-1, 1:-1] = Ex[t - 1, :, 1:-1, 1:-1] + stability_constant * \
+                                                              ((Bz[t - 1, :, 1:, 1:-1] - Bz[t - 1, :, :-1, 1:-1]) -
+                                                               (By[t - 1, :, 1:-1, 1:] - By[t - 1, :, 1:-1, :-1]))
+            Ey[t, 1:-1, :, 1:-1] = Ey[t - 1, 1:-1, :, 1:-1] + stability_constant * \
+                                                              ((Bx[t - 1, 1:-1, :, 1:] - Bx[t - 1, 1:-1, :, :-1]) -
+                                                               (Bz[t - 1, 1:, :, 1:-1] - Bz[t - 1, :-1, :, 1:-1]))
+            Ez[t, 1:-1, 1:-1, :] = Ez[t - 1, 1:-1, 1:-1, :] + stability_constant * \
+                                                              ((By[t - 1, 1:, 1:-1, :] - By[t - 1, :-1, 1:-1, :]) -
+                                                               (Bx[t - 1, 1:-1, 1:, :] - Bx[t - 1, 1:-1, :-1, :]))
 
-                        Ez[I // 3, J // 3, K // 3] += np.exp(-((t + t0) - 30) ** 2 / 100)
+            if pulse:
+                Ez[t, 0, 1:-1, K // 2] = np.exp(-((t + t0) - 30) ** 2 / 100)
 
-            for i in range(0, I):
-                for j in range(0, J):
-                    for k in range(0, K):
-                        if i != 0:
-                            Bx[i, j, k] = -stability_constant * ((Ez[i, j + 1, k] - Ez[i, j, k]) - (Ey[i, j, k + 1] - Ey[i, j, k])) + Bx[i, j, k]
-                        if j != 0:
-                            By[i, j, k] = -stability_constant * ((Ex[i, j, k + 1] - Ex[i, j, k]) - (Ez[i + 1, j, k] - Ez[i, j, k])) + Bx[i, j, k]
-                        if k != 0:
-                            Bx[i, j, k] = -stability_constant * ((Ey[i + 1, j, k] - Ey[i, j, k]) - (Ex[i, j + 1, k] - Ex[i, j, k])) + Bx[i, j, k]
+            Bx[t, 1:-1, :, :] = Bx[t - 1, 1:-1, :, :] - stability_constant * \
+                                                        ((Ez[t, 1:-1, 1:, :] - Ez[t, 1:-1, :-1, :]) -
+                                                         (Ey[t, 1:-1, :, 1:] - Ey[t, 1:-1, :, :-1]))
+            By[t, :, 1:-1, :] = By[t - 1, :, 1:-1, :] - stability_constant * \
+                                                        ((Ex[t, :, 1:-1, 1:] - Ex[t, :, 1:-1, :-1]) -
+                                                         (Ez[t, 1:, 1:-1, :] - Ez[t, :-1, 1:-1, :]))
+            Bz[t, :, :, 1:-1] = Bz[t - 1, :, :, 1:-1] - stability_constant * \
+                                                        ((Ey[t, 1:, :, 1:-1] - Ey[t, :-1, :, 1:-1]) -
+                                                         (Ex[t, :, 1:, 1:-1] - Ex[t, :, :-1, 1:-1]))
 
     else:
         raise NotImplementedError
@@ -73,17 +82,92 @@ def yee_3D(M, N, t0, fields=None, boundary='pmc'):
     return Ex, Ey, Ez, Bx, By, Bz
 
 
+def initialize_fields_3d(I, J, K):
+    Ex = np.zeros((N + 1, I - 1, J, K))
+    Ey = np.zeros((N + 1, I, J - 1, K))
+    Ez = np.zeros((N + 1, I, J, K - 1))
+    Bx = np.zeros((N + 1, I, J - 1, K - 1))
+    By = np.zeros((N + 1, I - 1, J, K - 1))
+    Bz = np.zeros((N + 1, I - 1, J - 1, K))
+    return Ex, Ey, Ez, Bx, By, Bz
+
+
+def initial_wave():
+    Ex, Ey, Ez, Bx, By, Bz = initialize_fields_3d(M, M, M)
+    l = np.arange(M // 2)
+    wave = np.sin(l / l[-1] * np.pi)
+    start_y = M // 4
+    stop_y = M // 4 + M // 2
+    Ez[0, M // 2, start_y:stop_y, M // 2] = wave
+    By[0, M // 2, start_y:stop_y, M // 2] = wave
+
+    _, _, Ez, _, _, _ = yee_3d((M, M, M), N, initial_fields=(Ex, Ey, Ez, Bx, By, Bz))
+
+    return Ex, Ey, Ez, Bx, By, Bz
+
+
+def initial_analytical(periods=1):
+    c = 299792458
+    Ex, Ey, Ez, Bx, By, Bz = initialize_fields_3d(M, M, M)
+    Ez_plane_analytical = np.zeros((N, M, M))
+    beta = periods / M
+
+    sin_x = np.sin(2 * np.pi * np.linspace(0, M * beta, M)).reshape(M, 1, 1)
+    sin_y = np.sin(2 * np.pi * np.linspace(0, M * beta, M)).reshape(1, M, 1)
+    sin_z = np.sin(2 * np.pi * np.linspace(beta / 2, (M - 1 / 2) * beta, M - 1)).reshape(1, 1, M - 1)
+    Ez[0, :, :, :] = sin_x * sin_y * sin_z
+
+    cos_t = np.cos(np.sqrt(12) * np.pi * c * np.arange(N + 1)).reshape(N + 1, 1, 1)
+    sin_x = sin_x.reshape(1, M, 1)
+    sin_y = sin_y.reshape(1, 1, M)
+    Ez_plane_analytical = cos_t * sin_x * sin_y * np.sin(2 * np.pi * (z_plane + 1 / 2) * beta)
+
+    # for t in range(0, N):
+    #     for i in range(0, M):
+    #         for j in range(0, M):
+    #             Ez_plane_analytical[t, i, j] = np.sin(2 * np.pi * i * beta) * np.sin(2 * np.pi * j * beta) * \
+    #                                            np.sin(2 * np.pi * (z_plane + 1 / 2) * beta) * \
+    #                                            np.cos(np.sqrt(12) * np.pi * c * t)
+    # for i in range(0, M):
+    #     for j in range(0, M):
+    #         for k in range(0, M - 1):
+    #             Ez[0, i, j, k] = np.sin(2 * np.pi * i * beta) * np.sin(2 * np.pi * j * beta) * \
+    #                              np.sin(2 * np.pi * (k + 1 / 2) * beta)
+
+    f = h5py.File('../Project/Ez_plane_a.h5', 'w')
+    f.create_dataset('Ez_plane_a', data=Ez_plane_analytical)
+    f.close()
+
+    _, _, Ez, _, _, _ = yee_3d((M, M, M), N, initial_fields=(Ex, Ey, Ez, Bx, By, Bz))
+
+    return Ex, Ey, Ez, Bx, By, Bz
+
+
 if __name__ == '__main__':
     M = 50
-    N = 20
-    Ex, Ey, Ez, _, _, _ = yee_3D((M, M, M), N, 0)
+    N = 200
+    z_plane = M // 2
 
-    x = np.arange(M + 1)
-    X, Y = np.meshgrid(x, x)
-    Z = Ex[:, :, M // 3]
-    plt.style.use('fivethirtyeight')
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X, Y, Z)
+    # _, _, Ez, _, _, _ = initial_wave()
+    _, _, Ez, _, _, _ = initial_analytical(periods=1)
+    # _, _, Ez, _, _, _ = yee_3d((M, M, M), N, pulse=True)
 
-    plt.show()
+    # Get and save value in plane
+    Ez_plane = Ez[:, :, :, z_plane]
+
+    f = h5py.File('../Project/Ez_plane.h5', 'w')
+    f.create_dataset('Ez_plane', data=Ez_plane)
+    f.close()
+
+    # Plot solution at time t_plot
+    # t_plot = 50
+
+    # x = np.arange(M)
+    # Y, X = np.meshgrid(x, x)
+    #
+    # plt.style.use('fivethirtyeight')
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.plot_surface(X, Y, Z[t_plot, :, :])
+    #
+    # plt.show()
