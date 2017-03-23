@@ -1,7 +1,7 @@
 clear;
 close;
 
-analytical = true;
+analytical = false;
 
 Ez_plane = permute(hdf5read('Ez_plane.h5', 'Ez_plane'), [3, 2, 1]);
 Ez_plane_analytical = permute(hdf5read('Ez_plane_a.h5', 'Ez_plane_a'), [3, 2, 1]);
