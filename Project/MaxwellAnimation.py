@@ -21,7 +21,7 @@ class MaxwellAnimation:
 
         if initial_fields is None:
             if isinstance(M, int):
-                self.fields = (np.zeros((self.M + 1)), np.zeros((self.M + 1)))
+                self.fields = (np.zeros((self.M)), np.zeros((self.M)))
 
                 self.yee = yee_1d
 
@@ -43,7 +43,7 @@ class MaxwellAnimation:
         fig = plt.figure()
         ax = plt.axes(xlim=(0, M), ylim=(-1, 1))
         line, = ax.plot([], [], lw=2)
-        x = np.arange(self.M + 1)
+        x = np.arange(self.M)
         t = np.arange(self.N + 1)
 
         def init():
@@ -62,7 +62,7 @@ class MaxwellAnimation:
         plt.show()
 
     def update_fields(self, time_steps):
-        self.fields = self.yee(self.M, time_steps, self.t, self.fields, self.boundary, pulse=True)
+        self.fields = self.yee(self.M, time_steps, t0=self.t, initial_fields=self.fields, boundary=self.boundary, pulse=True)
         self.t += time_steps
 
 

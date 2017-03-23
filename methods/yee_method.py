@@ -4,26 +4,35 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def yee_1d(M, N, t0=0, initial_fields=None, boundary='pmc', pulse=False):
+def yee_1d(M, N, t0=0, t_end=None, x_end=None, initial_fields=None, boundary='pmc', pulse=False):
     '''
     :param initial_fields: Tuple of arrays ((Ez, By)) with shapes (M + 1,)
     '''
 
-    # imp0 = 377.0
+    if t_end is None and x_end is None:
+        cp = 1
+    else:
+        c = 299792458
+        if t_end is not None:
+            k = t_end / N
+        if x_end is not None:
+            h = x_end / (M - 1)
+        cp = c * k / h
+        assert cp <= 1  # Courant number
 
     if initial_fields is None:
-        Ez = np.zeros(M + 1)
-        By = np.zeros(M + 1)
+        Ez = np.zeros(M)
+        By = np.zeros(M)
     else:
         Ez, By = initial_fields
-        assert Ez.shape == By.shape == (M + 1,)
+        assert Ez.shape == By.shape == (M,)
 
     if boundary == 'pmc':
         for t in range(1, N + 1):
-            Ez[1:] = (By[1:] - By[:-1]) + Ez[1:]
+            Ez[1:] = cp * (By[1:] - By[:-1]) + Ez[1:]
             if pulse:
                 Ez[M // 3] += np.exp(-((t + t0) - 30) ** 2 / 100)
-            By[:-1] = (Ez[1:] - Ez[:-1]) + By[:-1]
+            By[:-1] = cp * (Ez[1:] - Ez[:-1]) + By[:-1]
     else:
         raise NotImplementedError
 
@@ -149,8 +158,8 @@ if __name__ == '__main__':
     z_plane = M // 2
 
     # _, _, Ez, _, _, _ = initial_wave()
-    _, _, Ez, _, _, _ = initial_analytical(periods=1)
-    # _, _, Ez, _, _, _ = yee_3d((M, M, M), N, pulse=True)
+    # _, _, Ez, _, _, _ = initial_analytical(periods=1)
+    _, _, Ez, _, _, _ = yee_3d((M, M, M), N, pulse=True)
 
     # Get and save value in plane
     Ez_plane = Ez[:, :, :, z_plane]
