@@ -10,9 +10,9 @@ os.environ['QT_API'] = 'pyqt'
 class MaxwellAnimation:
     def __init__(self, M, N, initial_fields=None, boundary='pmc'):
         '''
-        :param M: Tuple of integers specifying amount of nodes in each spatial direction.
+        :param M: Tuple of integers specifying amount of nodes in each spatial direction (simply an integer in 1D)
         :param initial_fields: Tuple of arrays containing field information necessary for running the Yee method.
-        Example in 3 dimensions: [Ex, Ey, Ez, Bx, By, Bz], with shapes (M[0], M[1], M[2]).
+        In 3 dimensions: (Ex, Ey, Ez, Bx, By, Bz), with specific shapes (asserted in Yee method function)
         '''
 
         self.M = M
@@ -44,6 +44,7 @@ class MaxwellAnimation:
         ax = plt.axes(xlim=(0, M), ylim=(-1, 1))
         line, = ax.plot([], [], lw=2)
         x = np.arange(self.M + 1)
+        t = np.arange(self.N + 1)
 
         def init():
             line.set_data(x, self.fields[0])
@@ -55,17 +56,17 @@ class MaxwellAnimation:
             line.set_data(x, y)
             return line,
 
-        step = self.N // 120
-        anim = animation.FuncAnimation(fig, animation_step, frames=x[::step], init_func=init, interval=10, blit=True)
+        step = max(self.N // 120, 1)
+        anim = animation.FuncAnimation(fig, animation_step, frames=t[::step], init_func=init, interval=10, blit=True)
 
         plt.show()
 
     def update_fields(self, time_steps):
-        self.fields = self.yee(self.M, time_steps, self.t, self.fields, self.boundary)
+        self.fields = self.yee(self.M, time_steps, self.t, self.fields, self.boundary, pulse=True)
         self.t += time_steps
 
 
 if __name__ == '__main__':
     M = 200
-    N = 1000
+    N = 10
     mr_probz = MaxwellAnimation(M, N)
