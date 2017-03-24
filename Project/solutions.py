@@ -45,7 +45,7 @@ class Solutions:
             else:
                 field[i] = self.eval_analytical_magnetic(x_values[i], time)
         if get_field:
-            return field
+                return field
         else:
             plt.plot(x_values, field)
             plt.show()
