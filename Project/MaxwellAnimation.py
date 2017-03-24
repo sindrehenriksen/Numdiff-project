@@ -2,13 +2,13 @@ import numpy as np
 from yee_method import yee_1d
 import matplotlib.pyplot as plt
 from matplotlib import animation
-import os
-
-os.environ['QT_API'] = 'pyqt'
+# import os
+#
+# os.environ['QT_API'] = 'pyqt'
 
 
 class MaxwellAnimation:
-    def __init__(self, M, N, initial_fields=None, boundary='pmc'):
+    def __init__(self, M, N, t_end=None, x_end=None, initial_fields=None, boundary='pmc', pulse=False):
         '''
         :param M: Tuple of integers specifying amount of nodes in each spatial direction (simply an integer in 1D)
         :param initial_fields: Tuple of arrays containing field information necessary for running the Yee method.
@@ -18,6 +18,10 @@ class MaxwellAnimation:
         self.M = M
         self.N = N
         self.t = 0
+        self.t_end = t_end
+        self.x_end = x_end
+        self.boundary = boundary
+        self.pulse = pulse
 
         if initial_fields is None:
             if isinstance(M, int):
@@ -32,10 +36,8 @@ class MaxwellAnimation:
             self.fields = initial_fields
 
             if isinstance(M, int):
-                assert self.fields.shape
+                assert self.fields[0].shape == self.fields[1].shape == (self.M,)
                 self.yee = yee_1d
-
-        self.boundary = boundary
 
         self.animate()
 
@@ -61,12 +63,23 @@ class MaxwellAnimation:
 
         plt.show()
 
-    def update_fields(self, time_steps):
-        self.fields = self.yee(self.M, time_steps, t0=self.t, initial_fields=self.fields, boundary=self.boundary, pulse=True)
-        self.t += time_steps
+    def update_fields(self, run_time_steps):
+        self.fields = self.yee(self.M, self.N, t0=self.t, run_time_steps=run_time_steps, t_end=self.t_end,
+                               x_end = self.x_end, initial_fields=self.fields, boundary=self.boundary, pulse=self.pulse)
+        self.t += run_time_steps
 
 
 if __name__ == '__main__':
-    M = 200
-    N = 10
-    mr_probz = MaxwellAnimation(M, N)
+    M = 100
+    N = 100
+    c = 299792458
+    t_end = 1 / c
+    x_end = 1
+
+    mr_probz = MaxwellAnimation(M, M - 1, t_end=t_end, x_end=x_end, boundary='abc', pulse=True)
+
+    # Ez = np.sin(2 * np.pi * np.linspace(0, x_end, M))
+    # By = np.zeros(M)
+    # By = -np.sin(2 * np.pi * np.linspace(0, x_end, M))
+    # mr_probz = MaxwellAnimation(M, N, t_end=t_end, x_end=x_end, initial_fields=(Ez, By), boundary='periodic')
+
