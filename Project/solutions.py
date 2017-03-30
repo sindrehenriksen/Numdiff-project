@@ -10,9 +10,9 @@ class Solutions:
     def __init__(self, init_displacement, init_velocity, constant):
         self.c = constant
         self.f = init_displacement
-        #self.f = self.f.subs(c, self.c)
+        # self.f = self.f.subs(c, self.c)
         self.g = init_velocity
-        #self.g = self.g.subs(c, self.c)
+        # self.g = self.g.subs(c, self.c)
         self.electric_field = self._analytical_electric()
         self.magnetic_field = self._analytical_magnetic()
 
@@ -45,11 +45,19 @@ class Solutions:
             else:
                 field[i] = self.eval_analytical_magnetic(x_values[i], time)
         if get_field:
-                return field
+            return field
         else:
             plt.plot(x_values, field)
             plt.show()
             return None
+
+    def electric_along_time(self, start, stop, steps, coordinate):
+        t_values = np.linspace(start, stop, steps)
+        field_time = np.zeros(steps)
+        for i in range(steps):
+            field_time[i] = self.eval_analytical_electric(coordinate, t_values[i])
+        plt.plot(t_values, field_time)
+        return field_time
 
     def animation(self, x_start, x_stop, t_start, t_stop, steps, electric=True):
         t_values = np.arange(t_start, t_stop, (t_stop - t_start) / steps)
@@ -73,21 +81,21 @@ class Solutions:
 
         ani = animation.FuncAnimation(fig, animate, frames=steps, init_func=init, interval=5, blit=True)
         plt.show()
-        #ani.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+        # ani.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+
 
 if __name__ == "__main__":
     x, t, c = symbols("x t c")
     speed_of_light = 299792458
-    f = exp(-(x - 30) ** 2 / 100)
-    g = x*0
+    f = sin(2 * pi * x)
+    g = 2 * pi * speed_of_light * cos(2 * pi * x)
     problem = Solutions(f, g, speed_of_light)
-    problem.plot_analytical(0, 80, 200, 10 / (1 * speed_of_light), electric=True)
-#problem.animation(-70, 130, 0, 100 / speed_of_light, 50, electric=True)
+    print(problem.electric_field)
+    # problem.plot_analytical(0, 1, 200, 1 / (1 * 200 * speed_of_light), electric=True)
+    # problem.animation(0, 2, 0, 1 / speed_of_light, 50, electric=True)
 
 
 # x, y, z, t, c = symbols("x y z t c")
 # f = sin(pi*x) + cos(pi*y) + sin(pi*z)
 # g = sin(pi*y)
 # analytical_electric_3d(f, g)
-
-
