@@ -26,7 +26,7 @@ class Solutions:
     def _analytical_magnetic(self):
         x, t = symbols("x t")
         diff_electric = diff(self.electric_field, x)
-        return integrate(diff_electric, t)
+        return integrate(diff_electric, t) * self.c
 
     def eval_analytical_electric(self, x_num, t_num):
         x, t = symbols("x t")
@@ -56,7 +56,7 @@ class Solutions:
         field_time = np.zeros(steps)
         for i in range(steps):
             field_time[i] = self.eval_analytical_electric(coordinate, t_values[i])
-        plt.plot(t_values, field_time)
+        # plt.plot(t_values, field_time)
         return field_time
 
     def animation(self, x_start, x_stop, t_start, t_stop, steps, electric=True):
@@ -87,8 +87,8 @@ class Solutions:
 if __name__ == "__main__":
     x, t, c = symbols("x t c")
     speed_of_light = 299792458
-    f = sin(2 * pi * x)
-    g = 2 * pi * speed_of_light * cos(2 * pi * x)
+    f = exp(-(x - 30) ** 2 / 100)
+    g = 0
     problem = Solutions(f, g, speed_of_light)
     print(problem.electric_field)
     # problem.plot_analytical(0, 1, 200, 1 / (1 * 200 * speed_of_light), electric=True)
